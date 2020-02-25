@@ -1,19 +1,5 @@
-	hello darkness
-my
-old friend
-100 20 43 _john_ny
-// this should not be printed out
-42 + 69 / 23 * 2 % 6
-
-<= >=!===
-{johny777121223}
-(helo)
-"this is a string" 100 nice "this is another string on the same line"
-+ - / 30 _jjjj_ "this is another string on another line"
-break , ; || true false
-while return
-if else
-100 20 42
-"my firend" // comment that lasts for ever
-identifier
-"string with word identifier" && ||
+calculator()
+{
+        init();
+        parser();
+}

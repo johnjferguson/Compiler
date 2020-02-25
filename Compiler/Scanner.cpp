@@ -18,17 +18,17 @@ std::unordered_map<std::string, Token::Type> Scanner::reservedMap =
 };
 
 
-std::queue<Token> Scanner::Tokenize(const std::string & path) const
+std::vector<Token> Scanner::Tokenize(const std::string & path) const
 {
 	std::ifstream file(path);
 	if (!file.good())
 	{
 		std::cerr << "Scanner Error: Failed to open - " << path << std::endl;
 		good = false;
-		return std::queue<Token>();
+		return std::vector<Token>();
 	}
 
-	std::queue<Token> tokens;
+	std::vector<Token> tokens;
 	unsigned int lineNum = 1;
 
 	std::string line;
@@ -49,6 +49,7 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 			{
 			case ' ':
 			case '\t':
+			case '\r':
 				// ignore white space
 				break;
 			case '/':
@@ -58,124 +59,129 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 				}
 				else
 				{
-					tokens.push({ Token::Type::O_DIV, lineNum, 0, "/" });
+					tokens.push_back({ Token::Type::O_DIV, lineNum, 0, "/" });
 				}
 				break;
 			case '<':
 				if (!eol && line[i + 1] == '=')
 				{
-					tokens.push({ Token::Type::O_LE, lineNum, 0, "<=" });
+					tokens.push_back({ Token::Type::O_LE, lineNum, 0, "<=" });
 					i++;
 				}
 				else
 				{
-					tokens.push({ Token::Type::O_LT, lineNum, 0, "<" });
+					tokens.push_back({ Token::Type::O_LT, lineNum, 0, "<" });
 				}
 				break;
 			case '>':
 				if (!eol && line[i + 1] == '=')
 				{
-					tokens.push({ Token::Type::O_GE, lineNum, 0, ">=" });
+					tokens.push_back({ Token::Type::O_GE, lineNum, 0, ">=" });
 					i++;
 				}
 				else
 				{
-					tokens.push({ Token::Type::O_GT, lineNum, 0, ">" });
+					tokens.push_back({ Token::Type::O_GT, lineNum, 0, ">" });
 				}
 				break;
 			case '=':
 				if (!eol && line[i + 1] == '=')
 				{
-					tokens.push({ Token::Type::O_EQUIV, lineNum, 0, "==" });
+					tokens.push_back({ Token::Type::O_EQUIV, lineNum, 0, "==" });
 					i++;
 				}
 				else
 				{
-					tokens.push({ Token::Type::O_EQUAL, lineNum, 0, "=" });
+					tokens.push_back({ Token::Type::O_EQUAL, lineNum, 0, "=" });
 				}
 				break;
 			case '!':
 				if (!eol && line[i + 1] == '=')
 				{
-					tokens.push({ Token::Type::O_NOTEQUIV, lineNum, 0, "!=" });
+					tokens.push_back({ Token::Type::O_NOTEQUIV, lineNum, 0, "!=" });
 					i++;
 				}
 				else
 				{
-					tokens.push({ Token::Type::O_NOT, lineNum, 0, "!" });
+					tokens.push_back({ Token::Type::O_NOT, lineNum, 0, "!" });
 				}
 				break;
 			case '&':
 				if (!eol && line[i + 1] == '&')
 				{
-					tokens.push({ Token::Type::O_AND, lineNum, 0, "&&" });
+					tokens.push_back({ Token::Type::O_AND, lineNum, 0, "&&" });
 					i++;
 				}
 				else
 				{
 					std::cerr << "Scanner Error: Unexpected character after '&' on line - " << lineNum << std::endl;
 					good = false;
-					return std::queue<Token>();
+					return std::vector<Token>();
 				}
 				break;
 			case '|':
 				if (!eol && line[i + 1] == '|')
 				{
-					tokens.push({ Token::Type::O_OR, lineNum, 0, "||" });
+					tokens.push_back({ Token::Type::O_OR, lineNum, 0, "||" });
 					i++;
 				}
 				else
 				{
 					std::cerr << "Scanner Error: Unexpected character after '|' on line - " << lineNum << std::endl;
 					good = false;
-					return std::queue<Token>();
+					return std::vector<Token>();
 				}
 				break;
 			case '+':
-				tokens.push({ Token::Type::O_PLUS, lineNum, 0, "+" });
+				tokens.push_back({ Token::Type::O_PLUS, lineNum, 0, "+" });
 				break;
 			case '-':
-				tokens.push({ Token::Type::O_MINUS, lineNum, 0, "-" });
+				tokens.push_back({ Token::Type::O_MINUS, lineNum, 0, "-" });
 				break;
 			case '*':
-				tokens.push({ Token::Type::O_MULT, lineNum, 0, "*" });
+				tokens.push_back({ Token::Type::O_MULT, lineNum, 0, "*" });
 				break;
 			case '%':
-				tokens.push({ Token::Type::O_MOD, lineNum, 0, "%" });
+				tokens.push_back({ Token::Type::O_MOD, lineNum, 0, "%" });
 				break;
 			case '(':
-				tokens.push({ Token::Type::LRBRAC, lineNum, 0, "(" });
+				tokens.push_back({ Token::Type::LRBRAC, lineNum, 0, "(" });
 				break;
 			case ')':
-				tokens.push({ Token::Type::RRBRAC, lineNum, 0, ")" });
+				tokens.push_back({ Token::Type::RRBRAC, lineNum, 0, ")" });
 				break;
 			case '{':
-				tokens.push({ Token::Type::LCBRAC, lineNum, 0, "{" });
+				tokens.push_back({ Token::Type::LCBRAC, lineNum, 0, "{" });
 				break;
 			case '}':
-				tokens.push({ Token::Type::RCBRAC, lineNum, 0, "}" });
+				tokens.push_back({ Token::Type::RCBRAC, lineNum, 0, "}" });
 				break;
 			case ';':
-				tokens.push({ Token::Type::SEMICOLON, lineNum, 0, ";" });
+				tokens.push_back({ Token::Type::SEMICOLON, lineNum, 0, ";" });
 				break;
 			case ',':
-				tokens.push({ Token::Type::COMMA, lineNum, 0, "," });
+				tokens.push_back({ Token::Type::COMMA, lineNum, 0, "," });
 				break;
+				// dealing with strings
 			case '"':
 				if (eol)
 				{
 					std::cerr << "Scanner Error: No matching '\"' on line - " << lineNum << std::endl;
 					good = false;
-					return std::queue<Token>();
+					return std::vector<Token>();
 				}
 				target = -1;
 				str = std::string();
 				i++;
 				while (i < (int)line.size() && target < 0)
 				{
-					if (line[i] == '"')
+					if (line[i] == '"' && line[i-1] != '\\')
 					{
 						target = i;
+					}
+					else if (!IsCharacter(line[i]))
+					{
+						i++;
 					}
 					else
 					{
@@ -184,13 +190,13 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 				}
 				if (target > 0)
 				{
-					tokens.push({ Token::Type::STRING, lineNum, 0, str });
+					tokens.push_back({ Token::Type::STRING, lineNum, 0, str });
 				}
 				else
 				{
 					std::cerr << "Scanner Error: No matching '\"' on line - " << lineNum << std::endl;
 					good = false;
-					return std::queue<Token>();
+					return std::vector<Token>();
 				}
 				break;
 			default:
@@ -202,7 +208,11 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 						str.push_back(line[i++]);
 					}
 					i--;
-					tokens.push({ Token::Type::INTEGER, lineNum, std::stoi(str), str });
+					// check that integer is small enough to fit
+					if (str.size() < 10)
+						tokens.push_back({ Token::Type::INTEGER, lineNum, std::stoi(str), str });
+					else 
+						tokens.push_back({ Token::Type::INTEGER, lineNum, 0, str });
 				}
 				else if (AlphaNumPU(line[i]))
 				{
@@ -214,11 +224,11 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 					// checking if identifier is a reserved word
 					if (reservedMap.find(str) == reservedMap.end())
 					{
-						tokens.push({ Token::Type::IDENTIFIER, lineNum, 0, str });
+						tokens.push_back({ Token::Type::IDENTIFIER, lineNum, 0, str });
 					}
 					else
 					{
-						tokens.push({ reservedMap.find(str)->second, lineNum, 0, str });
+						tokens.push_back({ reservedMap.find(str)->second, lineNum, 0, str });
 					}
 					// went one too far
 					i--;
@@ -227,7 +237,7 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 				{
 					std::cerr << "Scanner Error: Unknown character - "<< line[i] << " - on line - " << lineNum << std::endl;
 					good = false;
-					return std::queue<Token>();
+					return std::vector<Token>();
 				}
 
 			}
@@ -242,6 +252,11 @@ std::queue<Token> Scanner::Tokenize(const std::string & path) const
 bool Scanner::AlphaNumPU(unsigned char c) const
 {
 	return std::isalnum(c) || (c == '_');
+}
+
+bool Scanner::IsCharacter(unsigned char c) const
+{
+	return c > 31u && c < 127u;
 }
 
 bool Scanner::Good() const

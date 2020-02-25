@@ -1,0 +1,2 @@
+g++ <file> -static-libstdc++ -static-libgcc
+g++ Compiler.o Scanner.o Token.o Main.o -static-libstdc++ -static-libgcc -o hello

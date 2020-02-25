@@ -6,30 +6,27 @@
 
 int Compiler::Run(const std::string & path)
 {
-	std::queue<Token> tokens = scanner.Tokenize(path);
+	std::vector<Token> tokens = scanner.Tokenize(path);
 	if (!scanner.Good())
 	{
-		std::cin.get();
+		std::cout << "Compiler didn't complete successfully\n";
 		return 1;
 	}
-	// this acually consumes the tokens... just how queue works
-	// could swap out with vector if needed
 	PrintTokens(tokens);
+	std::cout << "Compiler completed successfully\n";
 	std::cin.get();
 	return 0;
 }
 
-void Compiler::PrintTokens(std::queue<Token>& tokens) const
+void Compiler::PrintTokens(std::vector<Token>& tokens) const
 {
-	while (tokens.size() > 0)
+	for (auto& v : tokens)
 	{
 		std::stringstream ss;
-		const Token& t = tokens.front();
-		ss << "{ Type: " << std::setw(10) << std::left << Token::GetTokenString(t.type) <<
-			 "  Line: " << std::setw(4) << std::left << t.line <<
-			"  Value: " << std::setw(4) << std::left << t.value <<
-			 "  String: " << std::setw(40) << std::left << t.str << " }\n";
+		ss << "{ Type: " << std::setw(10) << std::left << Token::GetTokenString(v.type) <<
+			"  Line: " << std::setw(4) << std::left << v.line <<
+			"  Value: " << std::setw(4) << std::left << v.value <<
+			"  String: " << std::setw(40) << std::left << v.str << " }\n";
 		std::cout << ss.str();
-		tokens.pop();
 	}
 }
