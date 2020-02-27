@@ -1,39 +1,52 @@
 #include "Parser.h"
 #include <iostream>
 
-void Parser::Parse(const std::vector<Token>& tokens)
+using TT = Token::Type;
+
+void Parser::Parse(std::vector<Token>& tokens)
 {
+	this->tokens = &tokens;
+	tokens.push_back({ TT::EOT, 0u, 0, "end of tokens" });
+	index = 0u;
+	depth = 0u;
+
+	Start();
 }
 
-int Parser::Start(const std::vector<Token>& tokens, unsigned int index, unsigned int depth)
+bool Parser::Check(Token::Type type) const
 {
-	std::cout << "program {'type' : 'program'}" << std::endl;
-	if (tokens.size() == 0)
+	return (index < tokens->size()) && (type == (*tokens)[index].type);
+}
+
+bool Parser::Resolve(Token::Type type)
+{
+	if ((index < tokens->size()) && (type == (*tokens)[index].type))
 	{
-		return 0;
+		index++;
+		return true;
 	}
-	GlobalDeclarations(tokens, index, depth++);
+	return false;
 }
 
-int Parser::GlobalDeclarations(const std::vector<Token>& tokens, unsigned int index, unsigned int depth)
+bool Parser::Start()
 {
-	GlobalDeclaration(tokens, index, ++depth);
-	depth--;
-
-	if (index < tokens.size())
+	if (Check(TT::R_BOOLEAN) |
+		Check(TT::INTEGER) |
+		Check(TT::R_VOID) |
+		Check(TT::IDENTIFIER))
 	{
-		GlobalDeclarations(tokens, index, depth);
+		std::cout << "start is working" << std::endl;
+		return true;
 	}
-	return 0;
+	else if (Check(TT::EOT))
+	{
+		std::cout << "start is not working" << std::endl;
+		return true;
+	}
+	else
+	{
+		std::cout << "error in start" << std::endl;
+		return false;
+	}
 }
 
-int Parser::GlobalDeclaration(const std::vector<Token>& tokens, unsigned int index, unsigned int depth)
-{
-	/*
-	switch (tokens[index].type)
-	{
-		case Token::Type::
-	}
-	*/
-	return 0;
-}

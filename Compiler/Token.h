@@ -40,7 +40,8 @@ struct Token
 		LCBRAC,
 		RCBRAC,
 		SEMICOLON,
-		COMMA
+		COMMA,
+		EOT
 	};
 	static std::string& GetTokenString(Token::Type type);
 

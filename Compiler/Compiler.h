@@ -6,6 +6,7 @@
 class Compiler
 {
 public:
+	Compiler() = default;
 	int Run(const std::string& path);
 	void PrintTokens(std::vector<Token>& tokens) const;
 private:

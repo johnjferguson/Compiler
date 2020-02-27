@@ -13,6 +13,9 @@ int Compiler::Run(const std::string & path)
 		return 1;
 	}
 	PrintTokens(tokens);
+
+	parser.Parse(tokens);
+
 	std::cout << "Compiler completed successfully\n";
 	std::cin.get();
 	return 0;
