@@ -43,6 +43,8 @@ struct Token
 		COMMA,
 		EOT
 	};
+
+
 	static std::string& GetTokenString(Token::Type type);
 
 	Token::Type type = Token::Type::INVALID;
