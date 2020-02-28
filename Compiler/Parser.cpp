@@ -390,7 +390,405 @@ Parser::Node * Parser::BlockStatement()
 	return node;
 }
 
-Node * Parser::Statement()
+Parser::Node * Parser::Statement()
+{
+	Parser::Node* node = new Parser::Node("statement", GetLine(), "statement");
+	Parser::Node* returnNode = new Parser::Node();
+	Parser::Node* ifNode = new Parser::Node();
+	Parser::Node* whileNode = new Parser::Node();
+
+	switch (GetType())
+	{
+	case TT::LCBRAC:
+		node->Add(Block());
+		break;
+	case TT::IDENTIFIER:
+		node->Add(StatementExpression());
+		break;
+	case TT::R_BREAK:
+		node->Add(new Parser::Node("break", GetLine(), GetStr()));
+		Resolve(TT::R_BREAK);
+		Resolve(TT::SEMICOLON);
+		break;
+	case TT::R_RETURN:
+		returnNode->Set("return", GetLine(), GetStr());
+		Resolve(TT::R_RETURN);
+
+		if (Check(TT::O_MINUS) || Check(TT::INTEGER) || Check(TT::STRING)
+			|| Check(TT::R_TRUE) || Check(TT::R_FALSE)
+			|| Check(TT::LRBRAC) || Check(TT::IDENTIFIER))
+		{
+			returnNode->Add(Expression());
+			Resolve(TT::SEMICOLON);
+		}
+		else if (Check(TT::SEMICOLON))
+		{
+			Resolve(TT::SEMICOLON);
+		}
+		else
+		{
+			std::cerr << "Statement Else Fail" << std::endl;
+			good = false;
+		}
+		node->Add(returnNode);
+		break;
+	case TT::R_IF:
+		ifNode->Set("if", GetLine(), GetStr());
+		Resolve(TT::R_IF);
+		Resolve(TT::LRBRAC);
+		ifNode->Add(Expression());
+		ifNode->Add(Statement());
+		while (Check(TT::R_ELSE))
+		{
+			ifNode->Add(Statement());
+		}
+		node->Add(ifNode);
+		break;
+	case TT::R_WHILE:
+		whileNode->Set("while", GetLine(), GetStr());
+		Resolve(TT::R_WHILE);
+		Resolve(TT::LRBRAC);
+		whileNode->Add(Expression());
+		whileNode->Add(Statement());
+		node->Add(whileNode);
+		break;
+	default:
+		std::cerr << "Statement Fail" << std::endl;
+		good = false;
+		break;
+	}
+
+	if (returnNode->IsDefault())
+		delete returnNode;
+	if (ifNode->IsDefault())
+		delete ifNode;
+	if (whileNode->IsDefault())
+		delete whileNode;
+
+	return node;
+}
+
+Parser::Node * Parser::StatementExpression()
+{
+	Parser::Node* node = new Parser::Node("statementexpression", 0u, "statementexpression");
+
+	node->Add(Identifier());
+
+	if (Check(TT::O_EQUAL))
+	{
+		Resolve(TT::O_EQUAL);
+		node->Add(AssignmentExpression());
+	}
+	else if (Check(TT::LRBRAC))
+	{
+		Resolve(TT::LRBRAC);
+		node->Add(ArgumentList());
+		Resolve(TT::RRBRAC);
+	}
+	else
+	{
+		std::cerr << "StatementExpression Fail" << std::endl;
+		good = false;
+	}
+	return node;
+}
+
+Parser::Node * Parser::Primary()
+{
+	Parser::Node* node = new Parser::Node("primary", 0u, "primary");
+
+	if (Check(TT::INTEGER) || Check(TT::STRING) || Check(TT::R_TRUE) || Check(TT::R_FALSE))
+	{
+		node->Add(Literal());
+	}
+	else if (Check(TT::LRBRAC))
+	{
+		Resolve(TT::LRBRAC);
+		node->Add(Expression());
+		Resolve(TT::RRBRAC);
+	}
+	else if (Check(TT::IDENTIFIER))
+	{
+		node->Add(FunctionInvocation());
+	}
+	else
+	{
+		std::cerr << "Primary Fail" << std::endl;
+		good = false;
+	}
+
+	return node;
+}
+
+Parser::Node * Parser::ArgumentList()
+{
+	Parser::Node* node = new Parser::Node("argumentlist", 0u, "argumentlist");
+
+	node->Add(Expression());
+
+	while (Check(TT::COMMA))
+	{
+		node->Add(Expression());
+	}
+
+	return node;
+}
+
+Parser::Node * Parser::FunctionInvocation()
+{
+	Parser::Node* node = new Parser::Node("functioninvocation", 0u, "functioninvocation");
+
+	node->Add(Identifier());
+	Resolve(TT::LRBRAC);
+
+	if (Check(TT::O_MINUS) || Check(TT::INTEGER) || Check(TT::STRING)
+		|| Check(TT::R_TRUE) || Check(TT::R_FALSE)
+		|| Check(TT::LRBRAC) || Check(TT::IDENTIFIER))
+	{
+		node->Add(ArgumentList());
+		Resolve(TT::RRBRAC);
+	}
+	else if (Check(TT::RRBRAC))
+	{
+		Resolve(TT::RRBRAC);
+	}
+	else
+	{
+		std::cerr << "FunctionInvocation Fail" << std::endl;
+		good = false;
+	}
+	return node;
+}
+
+Parser::Node * Parser::PostfixExpression()
+{
+	Parser::Node* node = new Parser::Node("postfixexpression", 0u, "postfixexpression");
+
+	if (Check(TT::INTEGER) || Check(TT::STRING) || Check(TT::R_TRUE) || Check(TT::R_FALSE))
+	{
+		Parser::Node* node0 = new Parser::Node("primary", 0u, "primary");
+		node0->Add(Literal());
+		node->Add(node0);
+	}
+	else if (Check(TT::LRBRAC))
+	{
+		Parser::Node* node1 = new Parser::Node("primary", 0u, "primary");
+		Resolve(TT::LRBRAC);
+		node1->Add(Expression());
+		Resolve(TT::RRBRAC);
+		node->Add(node1);
+	}
+	else if (Check(TT::IDENTIFIER))
+	{
+		Node* temp = Identifier();
+
+		if (Check(TT::LRBRAC))
+		{
+			Parser::Node* node2 = new Parser::Node("functioninvocation", 0, "functioninvocation");
+			Parser::Node* node3 = new Parser::Node("primary", 0, "primary");
+			node2->Add(temp);
+			Resolve(TT::LRBRAC);
+
+			if (Check(TT::O_MINUS) || Check(TT::INTEGER) || Check(TT::STRING)
+				|| Check(TT::R_TRUE) || Check(TT::R_FALSE)
+				|| Check(TT::LRBRAC) || Check(TT::IDENTIFIER))
+			{
+				node2->Add(ArgumentList());
+				Resolve(TT::RRBRAC);
+			}
+			else if (Check(TT::RRBRAC))
+			{
+				Resolve(TT::RRBRAC);
+			}
+			else
+			{
+				std::cerr << "PostFixExpression Fail Inner" << std::endl;
+				good = false;
+			}
+			node3->Add(node2);
+			node->Add(node3);
+		}
+		else
+		{
+			node->Add(Identifier());
+		}
+	}
+	else
+	{
+		std::cerr << "PostFixExpression Fail" << std::endl;
+		good = false;
+	}
+	return node;
+}
+
+Parser::Node * Parser::UnaryExpression()
+{
+	Parser::Node* node = new Parser::Node("unaryexpression", 0u, "unaryexpression");
+
+	if (Check(TT::INTEGER) || Check(TT::STRING) || Check(TT::R_TRUE) || Check(TT::R_FALSE)
+		|| Check(TT::LRBRAC) || Check(TT::IDENTIFIER))
+	{
+		node->Add(PostfixExpression());
+	}
+	else if (Check(TT::O_MINUS))
+	{
+		node->Add(new Parser::Node("minus", GetLine(), GetStr()));
+		Resolve(TT::O_MINUS);
+		node->Add(UnaryExpression());
+	}
+	else if (Check(TT::O_NOT))
+	{
+		node->Add(new Parser::Node("not", GetLine(), GetStr()));
+		Resolve(TT::O_NOT);
+		node->Add(UnaryExpression());
+	}
+	else
+	{
+		std::cerr << "UnaryExpression Fail" << std::endl;
+		good = false;
+	}
+	return node;
+}
+
+Parser::Node * Parser::MultiplicativeExpression()
+{
+	Parser::Node* node = new Parser::Node("multiplicativeexpression", 0u, "multiplicativeexpression");
+	node->Add(UnaryExpression());
+
+	while (Check(TT::O_MULT) || Check(TT::O_DIV) || Check(TT::O_MOD))
+	{
+		if (Check(TT::O_MULT))
+		{
+			node->Add(new Parser::Node("*", GetLine(), GetStr()));
+			Resolve(TT::O_MULT);
+			node->Add(UnaryExpression());
+		}
+		else if (Check(TT::O_DIV))
+		{
+			node->Add(new Parser::Node("/", GetLine(), GetStr()));
+			Resolve(TT::O_DIV);
+			node->Add(UnaryExpression());
+		}
+		else if (Check(TT::O_MOD))
+		{
+			node->Add(new Parser::Node("%", GetLine(), GetStr()));
+			Resolve(TT::O_MOD);
+			node->Add(UnaryExpression());
+		}
+	}
+	return node;
+}
+
+Parser::Node * Parser::AdditiveExpression()
+{
+	Parser::Node* node = new Parser::Node("additiveexpression", 0u, "additiveexpression");
+	node->Add(MultiplicativeExpression());
+
+	while (Check(TT::O_PLUS) || Check(TT::O_MINUS))
+	{
+		if (Check(TT::O_PLUS))
+		{
+			node->Add(new Parser::Node("+", GetLine(), GetStr()));
+			Resolve(TT::O_PLUS);
+			node->Add(MultiplicativeExpression());
+		}
+		else if (Check(TT::O_MINUS))
+		{
+			node->Add(new Parser::Node("-", GetLine(), GetStr()));
+			Resolve(TT::O_MINUS);
+			node->Add(MultiplicativeExpression());
+		}
+	}
+	return node;
+}
+
+Parser::Node * Parser::RelationalExpression()
+{
+	Parser::Node* node = new Parser::Node("relationalexpression", 0u, "relationalexpression");
+	node->Add(AdditiveExpression());
+
+	while (Check(TT::O_LT) || Check(TT::O_GT) || Check(TT::O_LE) || Check(TT::O_GE))
+	{
+		if (Check(TT::O_LT))
+		{
+			node->Add(new Parser::Node("<", GetLine(), GetStr()));
+			Resolve(TT::O_LT);
+			node->Add(AdditiveExpression());
+		}
+		else if (Check(TT::O_GT))
+		{
+			node->Add(new Parser::Node(">", GetLine(), GetStr()));
+			Resolve(TT::O_GT);
+			node->Add(AdditiveExpression());
+		}
+		else if (Check(TT::O_LE))
+		{
+			node->Add(new Parser::Node("<=", GetLine(), GetStr()));
+			Resolve(TT::O_LE);
+			node->Add(AdditiveExpression());
+		}
+		else if (Check(TT::O_GE))
+		{
+			node->Add(new Parser::Node(">=", GetLine(), GetStr()));
+			Resolve(TT::O_GE);
+			node->Add(AdditiveExpression());
+		}
+	}
+	return node;
+}
+
+Parser::Node * Parser::EqualityExpression()
+{
+	Parser::Node* node = new Parser::Node("equalityexpression", 0u, "equalityexpression");
+	node->Add(RelationalExpression());
+
+	while (Check(TT::O_EQUIV) || Check(TT::O_NOTEQUIV))
+	{
+		if (Check(TT::O_EQUIV))
+		{
+			node->Add(new Parser::Node("==", GetLine(), GetStr()));
+			Resolve(TT::O_EQUIV);
+			node->Add(RelationalExpression());
+		}
+		else if (Check(TT::O_NOTEQUIV))
+		{
+			node->Add(new Parser::Node("!=", GetLine(), GetStr()));
+			Resolve(TT::O_NOTEQUIV);
+			node->Add(RelationalExpression());
+		}
+	}
+	return node;
+}
+
+Parser::Node * Parser::ConditionalAndExpression()
+{
+	Parser::Node* node = new Parser::Node("conditionalandexpression", 0u, "conditionalandexpression");
+	node->Add(EqualityExpression());
+
+	while (Check(TT::O_AND))
+	{
+		node->Add(new Parser::Node("and", GetLine(), GetStr()));
+		Resolve(TT::O_AND);
+		node->Add(EqualityExpression());
+	}
+	return node;
+}
+
+Parser::Node * Parser::ConditionalOrExpression()
+{
+	Parser::Node* node = new Parser::Node("conditionalorexpression", 0u, "conditionalorexpression");
+	node->Add(ConditionalAndExpression());
+
+	while (Check(TT::O_OR))
+	{
+		node->Add(new Parser::Node("or", GetLine(), GetStr()));
+		Resolve(TT::O_OR);
+		node->Add(ConditionalAndExpression());
+	}
+	return node;
+}
+
+Parser::Node * Parser::AssignmentExpression()
 {
 	return nullptr;
 }
@@ -401,6 +799,18 @@ Parser::Node::Node(const std::string & name, unsigned int line, const std::strin
 	line(line),
 	attribute(attribute)
 {
+}
+
+void Parser::Node::Set(const std::string & name_in, unsigned int line_in, const std::string & attribute_in)
+{
+	name = name_in;
+	line = line_in;
+	attribute = attribute_in;
+}
+
+bool Parser::Node::IsDefault() const
+{
+	return name.size() == 0;
 }
 
 void Parser::Node::Add(Node * node)

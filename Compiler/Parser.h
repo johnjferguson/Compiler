@@ -10,6 +10,7 @@ public:
 		Node() = default;
 		Node(const std::string& name, unsigned int line, const std::string& attribute);
 		void Set(const std::string& name_in, unsigned int line_in, const std::string& attribute_in);
+		bool IsDefault() const;
 		// make sure no one(myself) cannot copy the pointers
 		Node(const Node&) = delete;
 		Node& operator=(const Node&) = delete;
