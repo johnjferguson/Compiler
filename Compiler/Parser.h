@@ -1,5 +1,6 @@
 #pragma once
 #include "Token.h"
+#include <sstream>
 
 class Parser
 {
@@ -10,6 +11,7 @@ public:
 		Node() = default;
 		Node(const std::string& name, unsigned int line, const std::string& attribute);
 		void Set(const std::string& name_in, unsigned int line_in, const std::string& attribute_in);
+		void Print(int depth) const;
 		bool IsDefault() const;
 		// make sure no one(myself) cannot copy the pointers
 		Node(const Node&) = delete;
@@ -31,13 +33,19 @@ public:
 	Parser(const Parser&) = delete;
 	Parser& operator=(const Parser&) = delete;
 	void Parse(std::vector<Token>& tokens);
+	void Print() const;
+	bool Good() const;
 private:
 	bool Check(Token::Type type) const;
+	// functions were nesting too deep added some lookahead
+	bool CheckForward(Token::Type type) const;
+	bool Check2Forward(Token::Type type) const;
 	void Resolve(Token::Type type);
 	Token::Type GetType() const;
 	const std::string& GetStr() const;
 	unsigned int GetLine() const;
 private:
+	// suffering
 	Node* Start();
 	Node* Literal();
 	Node* Type();
@@ -71,13 +79,12 @@ private:
 	Node* AssignmentExpression();
 	Node* Assignment();
 	Node* Expression();
-
 	
-
 private:
 	std::vector<Token>* tokens = nullptr;
 	unsigned int index;
 	bool good;
+	bool error_reported;
 private:
 	Node* head = nullptr;
 };

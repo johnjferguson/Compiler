@@ -12,9 +12,15 @@ int Compiler::Run(const std::string & path)
 		std::cout << "Compiler didn't complete successfully\n";
 		return 1;
 	}
-	PrintTokens(tokens);
+	//PrintTokens(tokens);
 
-	parser.Parse(tokens);
+	parser.Parse(tokens); 
+	if (!parser.Good())
+	{
+		std::cout << "Compiler didn't complete successfully\n";
+		return 1;
+	}
+	parser.Print();
 
 	std::cout << "Compiler completed successfully\n";
 	std::cin.get();
